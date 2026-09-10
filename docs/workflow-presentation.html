@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>From Ticket to Review — How the Workflow Works</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      /* HouseNumbers tokens on dark petrol — green accent (accent-500 family) */
+      --bg: hsl(191 100% 9%);           /* deep petrol, darker step of primary #003844 */
+      --surface: hsl(191 70% 13%);
+      --petrol: #003844;                /* primary / n900 */
+      --border: hsl(192 28% 25%);       /* n800 */
+      --fg: hsl(26 23% 92%);            /* warm cream */
+      --muted: hsl(187 12% 61%);        /* n500 */
+      --faint: hsl(187 15% 42%);
+      --accent: hsl(158 58% 50%);       /* HN green — accent-500 (#36c993) */
+      --accent-deep: hsl(158 58% 50%);
+      --accent-dim: hsl(160 45% 28%);
+      --accent-soft: hsl(148 82% 79%);  /* accent-300 */
+      --teal: hsl(177 100% 27%);        /* Accent900 #006c67 */
+      --green: hsl(148 82% 79%);        /* diff add — accent-300 */
+      --red: hsl(11 87% 62%);           /* at-risk */
+      --serif: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
+      --sans: "Avenir Next", "Segoe UI", system-ui, sans-serif;
+      --mono: "SF Mono", "Fira Code", "JetBrains Mono", "Cascadia Code", Menlo, monospace;
+    }
+    html, body { height: 100%; }
+    body { background: var(--bg); color: var(--fg); font-family: var(--sans); overflow: hidden; }
+
+    .deck { height: 100vh; position: relative; }
+    .slide {
+      position: absolute; inset: 0;
+      display: none; flex-direction: column; justify-content: center;
+      padding: 7vh 7vw 7vh 24rem;
+      opacity: 0; transition: opacity .4s ease;
+    }
+    @media (max-width: 1100px) { .slide { padding: 7vh 8vw; } }
+    .slide.active { display: flex; opacity: 1; }
+
+    /* texture: faint dotted grid, like graph paper */
+    .deck::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background-image: radial-gradient(rgba(239,233,226,.05) 1px, transparent 1px);
+      background-size: 26px 26px;
+    }
+
+    .eyebrow {
+      font-family: var(--mono); font-size: .8rem; letter-spacing: .22em;
+      text-transform: uppercase; color: var(--accent); margin-bottom: 1.1rem;
+    }
+    .eyebrow .dim { color: var(--faint); }
+
+    h1 {
+      font-family: var(--serif); font-weight: 500; font-size: clamp(2.6rem, 5.6vw, 4.4rem);
+      line-height: 1.06; letter-spacing: -.01em; text-wrap: balance; max-width: 18ch;
+      margin-bottom: 1.6rem;
+    }
+    h1 em { font-style: italic; color: var(--accent-deep); }
+    h2 {
+      font-family: var(--serif); font-weight: 500; font-size: clamp(1.9rem, 3.4vw, 2.7rem);
+      line-height: 1.12; letter-spacing: -.01em; text-wrap: balance; margin-bottom: 1.5rem; max-width: 26ch;
+    }
+    h2 em { font-style: italic; color: var(--accent-deep); }
+
+    p.lead { font-size: 1.16rem; line-height: 1.7; color: var(--muted); max-width: 62ch; }
+    p.lead strong { color: var(--fg); font-weight: 600; }
+
+    ul { list-style: none; margin-top: .3rem; }
+    li {
+      font-size: 1.08rem; line-height: 1.62; max-width: 66ch;
+      padding: .42em 0 .42em 1.7rem; position: relative;
+    }
+    li + li { border-top: 1px solid rgba(239,233,226,.08); }
+    li::before {
+      content: "—"; position: absolute; left: 0; color: var(--accent);
+      font-family: var(--mono);
+    }
+    li strong { color: var(--fg); }
+    li, p.lead { color: var(--muted); }
+
+    code { font-family: var(--mono); font-size: .92em; color: var(--fg);
+           background: var(--surface); border: 1px solid var(--border);
+           border-radius: 4px; padding: .1em .4em; }
+    pre {
+      font-family: var(--mono); font-size: .95rem; line-height: 1.6;
+      background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
+      padding: 1.15rem 1.4rem; margin: 1.2rem 0 0; overflow-x: auto;
+      box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    }
+    pre code { background: none; border: none; padding: 0; color: var(--fg); }
+    .add { color: var(--green); }
+    .del { color: var(--red); text-decoration: line-through; text-decoration-color: rgba(240,110,85,.5); }
+    .cm  { color: var(--faint); }
+    .amber { color: var(--accent); }
+
+    .checkpoint {
+      display: flex; gap: .9rem; align-items: baseline;
+      border: 1px solid var(--accent-dim); background: rgba(54,201,147,.07);
+      border-radius: 8px; padding: 1rem 1.3rem; margin-top: 1.5rem; max-width: 66ch;
+    }
+    .checkpoint .mark { font-family: var(--mono); color: var(--accent-deep); white-space: nowrap; font-size: .85rem; letter-spacing: .12em; }
+    .checkpoint p { color: var(--muted); font-size: 1.02rem; line-height: 1.6; }
+    .checkpoint p b { color: var(--fg); }
+
+    .cols { display: grid; grid-template-columns: 1.1fr .9fr; gap: 3.5rem; align-items: center; }
+    @media (max-width: 950px) { .cols { grid-template-columns: 1fr; gap: 1.5rem; } }
+
+    /* ── flow panel (right side, all slides) ─────── */
+    .flow-panel {
+      position: fixed; top: 0; left: 0; bottom: 0; width: 21rem; z-index: 20;
+      display: flex; flex-direction: column; justify-content: center;
+      padding: 3vh 2rem 3vh 2.2rem;
+      background: hsl(191 85% 7% / .75);
+      border-right: 1px solid var(--border);
+      backdrop-filter: blur(4px);
+    }
+    .fp-title {
+      font-family: var(--mono); font-size: .68rem; letter-spacing: .26em;
+      text-transform: uppercase; color: var(--faint); margin-bottom: 1.3rem;
+    }
+    .fstep { position: relative; padding: 0 0 0 1.15rem; }
+    .fstep::before {
+      content: ""; position: absolute; left: 0; top: .35rem; bottom: -.9rem;
+      width: 2px; background: var(--border); border-radius: 2px;
+    }
+    .fstep:last-of-type::before { bottom: .35rem; }
+    .fstep::after {
+      content: ""; position: absolute; left: -3px; top: .35rem;
+      width: 8px; height: 8px; border-radius: 50%;
+      background: var(--bg); border: 1.5px solid var(--faint);
+      transition: all .3s ease;
+    }
+    .fs-head { display: flex; align-items: baseline; gap: .55rem; padding: .12rem 0; }
+    .fs-n { font-family: var(--mono); font-size: .68rem; color: var(--faint); transition: color .3s ease; }
+    .fs-name {
+      font-family: var(--sans); font-size: .92rem; font-weight: 600;
+      color: var(--muted); transition: color .3s ease;
+    }
+    .fs-cmd { font-family: var(--mono); font-size: .7rem; color: var(--faint); margin-left: auto; }
+    .fs-desc {
+      font-size: .8rem; line-height: 1.5; color: var(--muted);
+      max-height: 0; overflow: hidden; opacity: 0;
+      transition: max-height .35s ease, opacity .35s ease, padding .35s ease;
+    }
+    .fstep .arrow-gap { height: .9rem; }
+    .fstep.done::after { border-color: var(--accent-dim); background: var(--accent-dim); }
+    .fstep.done::before { background: var(--accent-dim); }
+    .fstep.done .fs-n { color: var(--accent-dim); }
+    .fstep.here::after {
+      border-color: var(--accent); background: var(--accent);
+      box-shadow: 0 0 0 4px rgba(54,201,147,.18), 0 0 12px rgba(54,201,147,.5);
+    }
+    .fstep.here .fs-name { color: var(--fg); }
+    .fstep.here .fs-n { color: var(--accent); }
+    .fstep.here .fs-desc { max-height: 6rem; opacity: 1; padding: .15rem 0 .35rem; }
+    .fp-counter {
+      font-family: var(--mono); font-size: .78rem; color: var(--faint);
+      margin-top: 1.6rem; padding-left: 1.15rem;
+    }
+    .fp-counter b { color: var(--fg); font-weight: 500; }
+    @media (max-width: 1100px) {
+      .flow-panel { display: none; }
+      .fallback-counter { display: block; }
+    }
+    .fallback-counter {
+      display: none; position: fixed; bottom: 20px; left: 26px; z-index: 20;
+      font-family: var(--mono); font-size: .8rem; color: var(--faint);
+    }
+
+    /* create-plan slide: inner flow + plan-document mockup */
+    .agent-flow { display: flex; flex-wrap: wrap; align-items: center; gap: .45rem; margin: .1rem 0 1.4rem; }
+    .af {
+      font-family: var(--mono); font-size: .78rem; padding: .32em .7em; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--surface); color: var(--muted); white-space: nowrap;
+    }
+    .af.agent { border-color: var(--accent-dim); color: var(--accent-soft); }
+    .af.gate { border-color: var(--accent); color: var(--accent); }
+    .af-arrow { color: var(--faint); font-size: .8rem; }
+    .plan-doc {
+      background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+      overflow: hidden; box-shadow: 0 12px 32px rgba(0,0,0,.4);
+    }
+    .pd-head {
+      display: flex; align-items: center; gap: .45rem; padding: .55rem .9rem;
+      border-bottom: 1px solid var(--border);
+      font-family: var(--mono); font-size: .72rem; color: var(--faint);
+    }
+    .pd-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--border); flex: none; }
+    .pd-head .pd-dot:first-child { margin-left: 0; }
+    .pd-name { margin-left: .35rem; }
+    .pd-body { padding: .85rem 1rem .95rem; font-family: var(--mono); font-size: .76rem; line-height: 1.8; }
+    .pd-sec { color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .pd-sec b { color: var(--fg); font-weight: 600; }
+    .pd-commit { color: var(--green); padding-left: 1.1rem; }
+    .pd-cmd { color: var(--accent-soft); padding-left: 1.1rem; }
+    .pd-dim { color: var(--faint); }
+
+    /* staggered entrance */
+    .slide.active > * { animation: rise .5s ease both; }
+    .slide.active > *:nth-child(2) { animation-delay: .07s; }
+    .slide.active > *:nth-child(3) { animation-delay: .14s; }
+    .slide.active > *:nth-child(4) { animation-delay: .21s; }
+    .slide.active > *:nth-child(5) { animation-delay: .28s; }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+    @media (prefers-reduced-motion: reduce) {
+      .slide.active > * { animation: none; }
+      .slide { transition: none; }
+    }
+
+    .hint { position: fixed; bottom: 20px; right: 26px; z-index: 20;
+            font-family: var(--mono); font-size: .72rem; letter-spacing: .12em; color: var(--faint); }
+
+    /* big flow diagram on slide 2 */
+    .flowlist { counter-reset: st; margin-top: .4rem; }
+    .flowlist div {
+      display: flex; align-items: baseline; gap: 1.1rem;
+      padding: .62em 0; border-top: 1px solid rgba(239,233,226,.08); max-width: 60ch;
+    }
+    .flowlist div:first-child { border-top: none; }
+    .flowlist .n {
+      font-family: var(--mono); font-size: .85rem; color: var(--accent);
+      min-width: 2ch; text-align: right;
+    }
+    .flowlist .t { font-size: 1.1rem; color: var(--fg); }
+    .flowlist .cmd { font-family: var(--mono); font-size: .85rem; color: var(--faint); margin-left: auto; padding-left: 1.5rem; }
+    .flowlist .gate .n { color: var(--muted); }
+    .flowlist .gate .t { color: var(--muted); font-style: italic; font-family: var(--serif); }
+  </style>
+</head>
+<body>
+  <div class="deck">
+
+    <!-- 1 · Title -->
+    <section class="slide active" data-stage="0">
+      <div class="eyebrow">development workflow <span class="dim">· claude harness</span></div>
+      <h1>From ticket to review, <em>the same way</em> every time.</h1>
+      <p class="lead">How a ClickUp card becomes reviewed, traceable code — seven stages where automation handles the repetitive work and the developer decides at the checkpoints that matter.</p>
+    </section>
+
+    <!-- 2 · The flow at a glance -->
+    <section class="slide" data-stage="0">
+      <div class="eyebrow">overview</div>
+      <h2>Seven stages, three <em>human</em> checkpoints</h2>
+      <div class="cols">
+        <div class="flowlist">
+          <div><span class="n">1</span><span class="t">Branch from the ticket</span><span class="cmd">/git-cb</span></div>
+          <div><span class="n">2</span><span class="t">Plan before coding</span><span class="cmd">/create-plan</span></div>
+          <div class="gate"><span class="n">✓</span><span class="t">developer validates the plan</span></div>
+          <div><span class="n">3</span><span class="t">Implement, test-first</span><span class="cmd">tdd</span></div>
+          <div><span class="n">4</span><span class="t">Standardize the pull request</span><span class="cmd">/update-pr</span></div>
+          <div><span class="n">5</span><span class="t">Automated multi-agent review</span><span class="cmd">/review-pr</span></div>
+          <div class="gate"><span class="n">✓</span><span class="t">developer approves the findings</span></div>
+          <div><span class="n">6</span><span class="t">Manual QA, hands-on</span><span class="cmd">/manual-qa</span></div>
+          <div><span class="n">7</span><span class="t">Hand off for human review</span><span class="cmd">/slack-msg</span></div>
+        </div>
+        <p class="lead">Everything stays linked by construction: the branch name encodes the card, the PR links both, and the review request carries all three. Nothing depends on someone remembering a step.</p>
+      </div>
+    </section>
+
+    <!-- 3 · Stage 1 -->
+    <section class="slide" data-stage="1">
+      <div class="eyebrow">stage 01 <span class="dim">· branch</span></div>
+      <h2>It starts with a ticket — and ends with a board that's <em>already true</em></h2>
+      <ul>
+        <li>The card is read and classified: <strong>feature, fix, chore, or refactor</strong></li>
+        <li>The branch name encodes the full context, machine- and human-readable</li>
+        <li>The card moves to <strong>“in progress”</strong> the moment work starts</li>
+      </ul>
+      <pre><code><span class="add">feat/868g584nb-date-table</span>
+<span class="cm">└ type  └ ClickUp id   └ what it's about</span></code></pre>
+    </section>
+
+    <!-- 4 · Stage 2 -->
+    <section class="slide" data-stage="2">
+      <div class="eyebrow">stage 02 <span class="dim">· plan</span></div>
+      <h2>Think first, <em>code later</em></h2>
+      <div class="agent-flow">
+        <span class="af">read the full ticket</span><span class="af-arrow">→</span>
+        <span class="af">explore the codebase</span><span class="af-arrow">→</span>
+        <span class="af agent">reuse-hunter</span><span class="af-arrow">+</span>
+        <span class="af agent">security-sentinel</span><span class="af-arrow">→</span>
+        <span class="af">draft the plan</span><span class="af-arrow">→</span>
+        <span class="af gate">✓ you validate</span><span class="af-arrow">→</span>
+        <span class="af">.plans/</span>
+      </div>
+      <div class="cols" style="align-items:start; gap:2.6rem">
+        <div>
+          <ul>
+            <li>The <strong>full ticket</strong> is read — comments, attachments, subtasks — with questions asked when something is ambiguous</li>
+            <li>The <strong>reuse agent</strong> hunts existing code before anything new is proposed — flagging what belongs in <strong>shared packages</strong></li>
+            <li>The <strong>security agent</strong> raises requirements while they're cheapest to address</li>
+            <li>Validated plans are <strong>saved to <code>.plans/</code></strong>; <code>/split-plan</code> turns them into shippable slices — optionally ClickUp <strong>subtasks</strong></li>
+          </ul>
+          <div class="checkpoint">
+            <span class="mark">GATE ✓</span>
+            <p><b>The developer validates the plan before any code exists.</b> Gaps caught here cost minutes, not review cycles.</p>
+          </div>
+        </div>
+        <div class="plan-doc">
+          <div class="pd-head"><span class="pd-dot"></span><span class="pd-dot"></span><span class="pd-dot"></span><span class="pd-name">.plans/868g584nb-date-table.md</span></div>
+          <div class="pd-body">
+            <div class="pd-sec"><b>## Context</b> <span class="pd-dim">— why this change exists</span></div>
+            <div class="pd-sec"><b>## Approach</b> <span class="pd-dim">— the minimal solution (YAGNI)</span></div>
+            <div class="pd-sec"><b>## Existing code reused</b> <span class="pd-dim">— paths, not vibes (DRY)</span></div>
+            <div class="pd-sec"><b>## Implementation steps</b> <span class="pd-dim">— TDD-ordered</span></div>
+            <div class="pd-commit">test(web-app): add date-table spec</div>
+            <div class="pd-commit">feat(web-app): render date table</div>
+            <div class="pd-sec"><b>## Tests</b> <span class="pd-dim">— scenario → test file</span></div>
+            <div class="pd-sec"><b>## Risks</b> · <b>## Out of scope</b></div>
+            <div class="pd-sec"><b>## Verification</b></div>
+            <div class="pd-cmd">pnpm turbo test --filter=web-app</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 5 · Stage 3 -->
+    <section class="slide" data-stage="3">
+      <div class="eyebrow">stage 03 <span class="dim">· implement</span></div>
+      <h2>One intention <em>per commit</em></h2>
+      <p class="lead">The plan is executed test-first, and commits never mix file types — history reads like a story, review stays surgical, reverts stay safe.</p>
+      <pre><code><span class="add">test(agent-service):</span> add scorer fields for the new rule   <span class="cm">← failing test</span>
+<span class="add">feat(agent-service):</span> implement the new rule              <span class="cm">← makes it pass</span>
+<span class="add">docs(agent-service):</span> update the prompt                   <span class="cm">← separate concern</span>
+<span class="del">feat: tests + code + docs in one commit</span>                  <span class="cm">← never</span></code></pre>
+    </section>
+
+    <!-- 6 · Stage 4 -->
+    <section class="slide" data-stage="4">
+      <div class="eyebrow">stage 04 <span class="dim">· pull request</span></div>
+      <h2>A PR that <em>explains itself</em></h2>
+      <ul>
+        <li><strong>SEMVER title</strong> following the shared commit conventions</li>
+        <li>Criteria of Done, the ClickUp link, and a plain-English <strong>“What this does”</strong></li>
+        <li>Tables for any <strong>environment variables</strong> added or removed</li>
+        <li>Assignee set, pending comments addressed, automated reviewer triggered</li>
+      </ul>
+      <p class="lead" style="margin-top:1.2rem">Anyone — engineer or product — understands the change without leaving the page.</p>
+    </section>
+
+    <!-- 7 · Stage 5 -->
+    <section class="slide" data-stage="5">
+      <div class="eyebrow">stage 05 <span class="dim">· automated review</span></div>
+      <h2>Machines review <em>before</em> humans do</h2>
+      <ul>
+        <li>Multi-agent pass, scoped to the branch: <strong>security, API contracts, patterns, simplicity, tests, dead code</strong></li>
+        <li>Findings ranked <strong>Critical / High / Medium / Low</strong></li>
+        <li>Approved findings become <strong>inline comments</strong> on the exact lines — written like a peer, not a bot</li>
+      </ul>
+      <div class="checkpoint">
+        <span class="mark">GATE ✓</span>
+        <p><b>Nothing is posted without the author's consent.</b> The developer reviews the report, does a manual pass, and picks what reaches the PR.</p>
+      </div>
+    </section>
+
+    <!-- 8 · Stage 6: Manual QA -->
+    <section class="slide" data-stage="6">
+      <div class="eyebrow">stage 06 <span class="dim">· manual qa</span></div>
+      <h2>Automation proves the code — <em>hands prove the feature</em></h2>
+      <ul>
+        <li><code>/manual-qa</code> generates a step-by-step guide for the change: <strong>prerequisites, key action, sequential scenarios</strong> with concrete inputs and expected outputs</li>
+        <li>Plus a quick <strong>validation table</strong> and troubleshooting for the common failure points</li>
+        <li>Runs after the automated review — the code is already sound; this proves the <strong>behavior</strong></li>
+      </ul>
+      <div class="checkpoint">
+        <span class="mark">GATE ✓</span>
+        <p><b>The developer walks through the product by hand</b> and confirms the change works as intended before handing it off.</p>
+      </div>
+    </section>
+
+    <!-- 9 · Stage 7: Handoff -->
+    <section class="slide" data-stage="7">
+      <div class="eyebrow">stage 07 <span class="dim">· handoff</span></div>
+      <h2>Closing <em>the loop</em></h2>
+      <ul>
+        <li>The PR flips from draft to <strong>ready for review</strong></li>
+        <li>A structured status comment is guaranteed on the ClickUp card</li>
+        <li>A short, human-sounding <strong>review request</strong> is generated with PR and card links</li>
+        <li>The developer posts it — <strong>the last step is deliberately human</strong></li>
+      </ul>
+      <p class="lead" style="margin-top:1.2rem">Card, PR, and review request end the flow in sync: no orphaned tickets, no context-free review pings.</p>
+    </section>
+
+    <!-- 9 · Why it works -->
+    <section class="slide" data-stage="0">
+      <div class="eyebrow">summary</div>
+      <h2>Why this flow <em>works</em></h2>
+      <ul>
+        <li><strong>Same gates, every time</strong> — quality doesn't depend on remembering steps</li>
+        <li><strong>Three cheap checkpoints</strong> — validating the plan, approving findings, and hands-on QA beat cycles spent fixing</li>
+        <li><strong>Traceability by construction</strong> — branch → card → PR → review request</li>
+        <li><strong>Automation reviews first</strong> — human review starts from a higher baseline</li>
+        <li><strong>Humans stay in charge</strong> — every outward-facing action passes through the developer</li>
+      </ul>
+    </section>
+
+  </div>
+
+  <div class="hint">← → · navigate</div>
+
+  <aside class="flow-panel" aria-label="workflow steps">
+    <div class="fp-title">The flow</div>
+    <div class="fstep"><div class="fs-head"><span class="fs-n">01</span><span class="fs-name">Branch</span><span class="fs-cmd">/git-cb</span></div><div class="fs-desc">Reads the ClickUp card, creates a typed branch, moves the card to “in progress”.</div><div class="arrow-gap"></div></div>
+    <div class="fstep"><div class="fs-head"><span class="fs-n">02</span><span class="fs-name">Plan</span><span class="fs-cmd">/create-plan</span></div><div class="fs-desc">Structured plan — reuse, security, TDD steps, typed commits — validated by the developer and saved to <code>.plans/</code>.</div><div class="arrow-gap"></div></div>
+    <div class="fstep"><div class="fs-head"><span class="fs-n">03</span><span class="fs-name">Implement</span><span class="fs-cmd">tdd</span></div><div class="fs-desc">Test-first execution; one intention per commit, one file type per commit.</div><div class="arrow-gap"></div></div>
+    <div class="fstep"><div class="fs-head"><span class="fs-n">04</span><span class="fs-name">Pull request</span><span class="fs-cmd">/update-pr</span></div><div class="fs-desc">SEMVER title, Criteria of Done, env-var tables, card link — the PR explains itself.</div><div class="arrow-gap"></div></div>
+    <div class="fstep"><div class="fs-head"><span class="fs-n">05</span><span class="fs-name">Review</span><span class="fs-cmd">/review-pr</span></div><div class="fs-desc">Multi-agent review, severity report; the author approves what becomes inline comments.</div><div class="arrow-gap"></div></div>
+    <div class="fstep"><div class="fs-head"><span class="fs-n">06</span><span class="fs-name">Manual QA</span><span class="fs-cmd">/manual-qa</span></div><div class="fs-desc">Guided hands-on validation — proves the behavior, not just the code.</div><div class="arrow-gap"></div></div>
+    <div class="fstep"><div class="fs-head"><span class="fs-n">07</span><span class="fs-name">Handoff</span><span class="fs-cmd">/slack-msg</span></div><div class="fs-desc">PR marked ready, ClickUp comment guaranteed, review request posted by the developer.</div></div>
+    <div class="fp-counter"><b id="current">1</b> / <span id="total">1</span></div>
+  </aside>
+  <div class="fallback-counter"><span id="current2">1</span> / <span id="total2">1</span></div>
+
+  <script>
+    const slides = Array.from(document.querySelectorAll('.slide'));
+    const steps = Array.from(document.querySelectorAll('.flow-panel .fstep'));
+    const current = document.getElementById('current');
+    const total = document.getElementById('total');
+    const current2 = document.getElementById('current2');
+    const total2 = document.getElementById('total2');
+    let i = 0;
+    total.textContent = slides.length;
+    total2.textContent = slides.length;
+
+    function show(n) {
+      i = Math.max(0, Math.min(slides.length - 1, n));
+      slides.forEach((s, idx) => s.classList.toggle('active', idx === i));
+      current.textContent = i + 1;
+      current2.textContent = i + 1;
+
+      const st = parseInt(slides[i].dataset.stage, 10);
+      steps.forEach((el, idx) => {
+        el.classList.toggle('here', idx === st - 1);
+        el.classList.toggle('done', st > 0 && idx < st - 1);
+        if (st === 0) { el.classList.remove('here', 'done'); }
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'ArrowRight' || e.key === ' ') show(i + 1);
+      if (e.key === 'ArrowLeft') show(i - 1);
+    });
+    document.addEventListener('click', () => show(i + 1));
+    show(0);
+  </script>
+</body>
+</html>
