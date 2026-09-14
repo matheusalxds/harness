@@ -264,9 +264,9 @@
       <div class="eyebrow">stage 01 <span class="dim">· branch</span></div>
       <h2>It starts with a ticket — and ends with a board that's <em>already true</em></h2>
       <ul>
-        <li>The card is read and classified: <strong>feature, fix, chore, or refactor</strong></li>
+        <li>The <strong>ClickUp card</strong> is read and classified: <strong>feature, fix, chore, or refactor</strong></li>
         <li>The branch name encodes the full context, machine- and human-readable</li>
-        <li>The card moves to <strong>“in progress”</strong> the moment work starts</li>
+        <li>The ClickUp card moves to <strong>“in progress”</strong> the moment work starts</li>
       </ul>
       <pre><code><span class="add">feat/868g584nb-date-table</span>
 <span class="cm">└ type  └ ClickUp id   └ what it's about</span></code></pre>
@@ -441,7 +441,6 @@
       if (e.key === 'ArrowRight' || e.key === ' ') show(i + 1);
       if (e.key === 'ArrowLeft') show(i - 1);
     });
-    document.addEventListener('click', () => show(i + 1));
     show(0);
   </script>
 </body>
