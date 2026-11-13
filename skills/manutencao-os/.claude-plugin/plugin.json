@@ -1,0 +1,10 @@
+{
+  "$schema": "https://anthropic.com/claude-code/plugin.schema.json",
+  "name": "manutencao-os",
+  "version": "1.0.0",
+  "description": "Faz a manutenção de um segundo cérebro em markdown, qualquer que seja o formato dele: reconhece a estrutura antes de julgar e tira a régua do próprio OS auditado.",
+  "author": { "name": "Victor Baggio / Playbook Lab" },
+  "keywords": ["second-brain", "segundo-cerebro", "manutencao", "auditoria", "vault",
+               "markdown", "obsidian", "link-checker", "pt-br"],
+  "skills": ["./"]
+}

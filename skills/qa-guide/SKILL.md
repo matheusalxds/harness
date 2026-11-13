@@ -1,12 +1,13 @@
 ---
-name: manual-qa
+name: qa-guide
 description: >
-  Generate a step-by-step manual QA guide for validating a feature change — typically run
-  after the automated PR review, before handing off for human review. Use when the user asks
-  for "QA steps", "how to validate manually", "steps to test", "manual QA walkthrough", or
-  "manual QA guide". Output is a flat, direct guide with: prerequisites, how to perform the
-  key action, sequential test scenarios with concrete inputs and expected outputs, a quick
-  validation table, and troubleshooting.
+  Write a manual QA guide as a document someone can follow later without the author present,
+  typically after the automated PR review and before handing off for human review. Use when
+  the user asks to "write QA steps", "document how to validate", or wants a guide to hand off.
+  Output is a flat written guide: prerequisites, how to perform the key action, sequential test
+  scenarios with concrete inputs and expected outputs, a quick validation table, and
+  troubleshooting. For a live session where the user tests one scenario at a time while
+  feedback is collected into a ledger, use the project's interactive manual-qa skill instead.
 argument-hint: <feature description, ClickUp ID, or "current branch">
 ---
 

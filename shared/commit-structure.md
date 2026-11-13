@@ -1,6 +1,6 @@
 # Commit Structure — Canonical Convention
 
-Single source of truth for commit splitting rules used across skills (`/create-plan`, `/generate-commit-msg`, `/tdd`, `/address-pr-comments`, etc.).
+Single source of truth for commit splitting rules used across skills (`/create-plan`, `/generate-commit-msg`, `/address-pr-comments`, etc.).
 
 ## General rule
 

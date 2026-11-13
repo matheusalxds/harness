@@ -85,12 +85,17 @@ When planning the **Implementation steps** section, each commit must appear on i
 
 9. **Validate the minimum by reading the real file, not the summary** — if an exploration agent reported what changes, open the file with `Read` before finalizing the plan. Summaries induce scope errors (proposing to remove something that no longer exists, adding a rule already present, etc.).
 
+9.5 **Independent critique before presenting** (every plan): launch a `Plan` subagent (read-only; leave `model` unset so it inherits the session model) with only the card content, the draft plan, and the "Red flags in a plan" list below. Leave out your own reasoning and exploration notes: the critic's value is a context that has not seen how the plan was reached. Ask it to check the plan against the card and the real code, and to report only gaps that affect correctness or the card's requirements: a card requirement with no acceptance criterion, a criterion with no test, a red flag hit, or an assumption about the code that the files contradict, each citing the plan line or file it refers to and stating the concrete change to the plan that fixes it. "No gaps found" is a valid and expected result for a sound plan: a critic asked to find gaps usually reports some anyway, so tell it to return only constructive findings. Drop any finding that has no concrete fix or is about style, wording, or "nice to have". Apply the fixes that hold up, and tell the user which findings you dismissed and why.
+
 10. **Persist the plan after the user validates it** — once the user approves the plan, save it in full to `.plans/<clickup-id>-<slug>.md` at the repository root. Ensure `.plans/` is git-ignored **without touching the team's `.gitignore`**: add the line `.plans/` to `.git/info/exclude` if it's not already there. Tell the user the saved path — that file allows resuming implementation in another session and is the default input of `/split-plan`.
+
+11. **Keep Progress current during implementation**: when implementation starts or resumes in a new session, read the plan's Progress section and `git log` first. Mark a criterion `done` only after its test or Verification command passes, recording the command and the date as evidence. A criterion without recorded evidence stays `pending`, whatever the code looks like.
 
 ## Expected plan format
 
 - **Context** — 2-3 lines explaining the why of the change: the problem it solves, the constraint it addresses, the expected outcome
 - **Problem understanding** — what the card asks for, in technical language
+- **Acceptance criteria**: numbered list (`AC-1`, `AC-2`, ...) of objectively checkable outcomes derived from the card. Each criterion names the test (file and scenario) or the Verification command that proves it.
 - **Recommended approach** — the minimal solution that solves it, justified in YAGNI/DRY terms
 - **Existing code reused** — list of functions/utilities/patterns with file paths (explicit DRY), based on the `reuse-hunter` report. If the answer is "none, it's all new", explain why. Include a "**Promotion to shared**: ..." line when the report indicates code duplicated across services — stating whether the extraction to `packages/` is part of this plan or goes to "Out of scope" as a cleanup card.
 - **Affected files** — list of files to be created or modified, with one line describing the change in each
@@ -103,6 +108,7 @@ When planning the **Implementation steps** section, each commit must appear on i
 - **Risks and points of attention** — what can break, what needs monitoring, dependencies on other work in progress
 - **Out of scope** — identified but deliberately not addressed here. Always populate this section, even if with "nothing adjacent was identified".
 - **Verification** — concrete commands to validate end-to-end (e.g. `CI=true NO_COLOR=1 TURBO_UI=false pnpm turbo test:agentic --filter=<pkg>`), not generic instructions like "run the tests".
+- **Progress**: one row per acceptance criterion with status (`pending` / `done`) and evidence (the command that passed and the date). Every row starts as `pending`; step 11 keeps it current.
 
 ## Red flags in a plan
 
@@ -115,6 +121,7 @@ If the final plan has any of these, go back and redo it:
 - Implementation described before tests in the steps section (violates TDD)
 - Refactors adjacent to the card's scope (violates disciplined scope)
 - A "Verification" section with generic commands, or missing
+- An acceptance criterion with no test or Verification command proving it, or a card requirement with no acceptance criterion
 - An "Out of scope" section empty or missing (there's almost always something identified that stays out — make it explicit)
 - Generic "Risks" with no relation to the concrete change
 - **A single commit mixing file types** (test + production, or prompt + eval) — violates the commit structure. Steps must list `test:`, `feat|fix|docs:`, `chore:` as separate commits.

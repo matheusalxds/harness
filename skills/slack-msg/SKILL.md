@@ -1,15 +1,22 @@
 ---
 name: slack-msg
-description: Generate a Slack message requesting review for the current branch's PR. Writes in first person, friendly human tone, with PR + ClickUp links. Optional argument — word limit (default: 200). Example usage — `/slack-msg` for the default limit, `/slack-msg 100` to cap the message at 100 words.
+description: "Generate a Slack message requesting review for the current branch's PR. Writes in first person, friendly human tone, with PR + ClickUp links. Optional argument: word limit (default 200). Example usage: `/slack-msg` for the default limit, `/slack-msg 100` to cap the message at 100 words."
 ---
 
-IMPORTANT: Use the Haiku model (model: "haiku") for all Task/subagent calls in this skill to maximize speed.
+Use the Haiku model (model: "haiku") for all Task/subagent calls in this skill to maximize speed.
 
-IMPORTANT: This skill only GENERATES the Slack message — do NOT attempt to post or send it anywhere. Just output the final message text directly in the conversation for the user to copy and paste manually.
+This skill only generates the Slack message and never posts or sends it anywhere. Output the final message text directly in the conversation for the user to copy and paste manually.
 
-IMPORTANT: Before generating the message, check if the GitHub PR for the current branch is in Draft mode. If it is, use `gh pr ready` to mark it as Ready for Review first, then proceed with generating the message.
+Before generating the message, check if the GitHub PR for the current branch is in Draft mode. If it is, use `gh pr ready` to mark it as Ready for Review first, then proceed with generating the message.
 
-IMPORTANT: Before generating the message, ensure a ClickUp comment exists for the card linked to the current branch. Extract the card ID from the branch name (e.g. `868fwym2r` from `feat/868fwym2r-…`), then fetch the card's comments via the ClickUp MCP. If **no comment from me** exists yet on the card, invoke the `/comment-on-cu` skill first to leave one — this is the common-forgetting case the workflow protects against. If at least one comment from me already exists, **do NOT call `/comment-on-cu`** (skip silently — the user can run it manually if a delta update is needed). Only after this check, proceed to generate the Slack message.
+Before generating the message, ensure a ClickUp comment exists for the card linked to the current branch. ClickUp access (CLI invocation, auth check) follows `~/.claude/shared/clickup-conventions.md`. Extract the card ID from the branch name (e.g. `868fwym2r` from `feat/868fwym2r-…`), then read the card's comments and resolve your own user id:
+
+```bash
+node .agents/skills/clickup/query.mjs me --json
+node .agents/skills/clickup/query.mjs comments <card-id> --json
+```
+
+A comment counts as mine when its `user.id` matches the id returned by `me`. If **no comment from me** exists yet on the card, invoke the `/comment-on-cu` skill first to leave one — this is the common-forgetting case the workflow protects against. If at least one comment from me already exists, skip `/comment-on-cu` silently (the user can run it manually if a delta update is needed). Only after this check, proceed to generate the Slack message.
 
 ---
 
@@ -36,8 +43,8 @@ Real people on Slack:
 ### Message structure (closing)
 - **End with a warm, human closing**, not a transactional one. `Review whenever, thanks!` is acceptable but usually too dry — prefer something that acknowledges the reviewer's time.
 - Good closings (pick based on tone fit):
-  - `Appreciate any eyes on it when you have a moment — thanks a bunch! 🙏`
-  - `Whenever you get a breather, a review would be super helpful — thanks! 🙏`
+  - `Appreciate any eyes on it when you have a moment, thanks a bunch! 🙏`
+  - `Whenever you get a breather, a review would be super helpful. Thanks! 🙏`
   - `Happy to walk through anything unclear, thanks for the look! 🙏`
   - `Grateful for a set of eyes whenever you have a sec 🙏`
 - Avoid stiff / robotic CTAs like `Please review at your earliest convenience` or `Kindly review when possible`.
@@ -66,7 +73,7 @@ Re-read the draft and ask: *"Would I actually type this on Slack on a Tuesday af
 - End with a warm closing that asks for review without sounding transactional — see "Message structure (closing)" above for examples.
 - Max $ARGUMENTS words (default: 200 if no argument provided). Shorter is usually better.
 - Emojis: use sparingly and only positive, upbeat ones (✅, 🎯, 🚀, 🧩, 🔧, 🤖, 🙏, 💡, 🎉, ⚡, 🛠️). Usually 1–3 emojis total in the whole message is enough (one in the cheer, optionally one at the sign-off).
-- NEVER use emojis that convey negativity, awkwardness, frustration, or problems — like 😅, 😬, 😩, 😭, 😰, 🤦, 😓, 💀, 🥲.
+- Leave out emojis that convey negativity, awkwardness, frustration, or problems, like 😅, 😬, 😩, 😭, 😰, 🤦, 😓, 💀, 🥲.
 - Separate each context in a different paragraph (short paragraphs, Slack-friendly).
 - Use bullets to explain the concrete changes when there are multiple.
 - Add the PR link (prefix `PR:`).
@@ -92,17 +99,17 @@ Why it's bad: cheer runs into the same line as the pitch, "Super excited", third
 ✅ **Good (sounds human):**
 > Hey team! 👋
 >
-> Quick one on `R9` — after the demo the processors pointed out the `borrower` email was doing two things they wanted to change, so I shipped the prompt tweak.
+> Quick one on `R9`: after the demo the processors pointed out the `borrower` email was doing two things they wanted to change, so I shipped the prompt tweak.
 >
 > • I stopped flagging large deposits upfront (they'll be handled reactively once the statement is in).
 > • I changed `LOE` requests to a plain-language question instead of "write a letter".
 >
-> Branch 1 of 4 on this card — `LO`, `Title`, and `HOI` follow-ups next.
+> Branch 1 of 4 on this card, `LO`, `Title`, and `HOI` follow-ups next.
 >
 > PR: https://github.com/…
 > Card: https://app.clickup.com/…
 >
-> Appreciate any eyes on it when you have a moment — thanks a bunch! 🙏
+> Appreciate any eyes on it when you have a moment, thanks a bunch! 🙏
 
 Why it's good:
 - Cheer on its own line with a friendly `👋`, blank line separating it from the pitch.

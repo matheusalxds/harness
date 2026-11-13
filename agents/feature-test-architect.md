@@ -92,15 +92,19 @@ Every test altitude provides its own independent guarantee, by design:
 
 - **Unit** proves the rule/decision in isolation with test doubles (arguments,
   ordering, non-calls, branches).
-- **Integration/e2e** proves the complete real flow — wiring, middleware,
-  serialization, persistence — even when every branch is already unit-pinned.
-- **UI end-to-end** proves the user-facing layer on top of both, when the
-  project has one.
+- **Integration** proves the contract between components: wiring, middleware,
+  serialization, request and response shape, status codes, persistence.
+- **E2E** proves one critical user flow end to end, including the user-facing
+  layer when the project has one.
 
-Repetition of a nominal scenario ACROSS altitudes is never a finding — it is
-the architecture working. Only flag duplication WITHIN the same altitude, and
-only when one test protects the exact same contract as another while asserting
-the same or strictly less. Suites that exercise different slices of the same
+Each behavior is asserted exactly once, at the lowest altitude that can prove
+it (the global zero-redundancy rule in `~/.claude/CLAUDE.md`). Repeating a
+nominal scenario across altitudes is fine only when each test asserts its own
+altitude's guarantee: unit the rule or branch, integration the contract, e2e
+the flow. Flag a higher-altitude test that re-asserts a business-rule branch
+already pinned by a unit test, and flag duplication within the same altitude
+when one test protects the same contract as another while asserting the same
+or strictly less. Suites that exercise different slices of the same
 feature (e.g. state/orchestration logic vs rendered output) count as different
 altitudes.
 
@@ -123,8 +127,9 @@ able to fail on its own.
     logic; bare re-exports of library validators are not.
 - **Const/object literal lookups.** Tests that read a `const` map or enum object and assert the literal values back. Example: `expect(LOAN_CHANNEL.CORRESPONDENT).toBe("correspondent")`. The map is its own documentation.
 - **Duplicate coverage with the same purpose.** Apply the altitude doctrine
-  above. Remove one only when both tests live at the same altitude and protect
-  the same contract.
+  above. Remove one when both protect the same contract at the same altitude,
+  or when a higher-altitude test re-asserts a branch a unit test already pins
+  (keep the assertion at the lowest altitude that proves it).
 - **Framework boilerplate.** Tests for route registration, middleware wiring, DI container setup. Unless the wiring has branching logic, don't test it. Exception: wiring that enforces a security or composition contract — an auth guard applied to a route group, middleware whose ordering changes behavior — deserves an integration test proving the boundary holds. The ban targets tautological registration tests, not contract-proving ones.
 - **Redundant split of one scenario.** Two `it()` blocks that set up the same state and assert different facets of the same outcome (e.g., "throws an Error" + "throws with message X"). Merge into one test with multiple assertions.
 - **Trivial getters/setters.** A setter that only assigns to a private field does not need a test.

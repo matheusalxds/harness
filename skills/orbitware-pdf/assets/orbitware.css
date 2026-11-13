@@ -1,0 +1,166 @@
+:root {
+  --black: #000000;
+  --ink: #0b0f1f;
+  --navy: #01236d;
+  --indigo: #1943a7;
+  --blue: #0665f9;
+  --blue-mid: #158cfd;
+  --blue-light: #23a7fd;
+  --cyan: #25ddfd;
+  --silver: #9aa3c4;
+  --lavender: #b4c3ed;
+  --white: #fdfdfd;
+  --muted: #59607a;
+  --faint: #8b91a8;
+  --paper: #ffffff;
+  --mist: #f4f6fd;
+  --mist-line: #dfe5f6;
+  --hairline: #e6e8f0;
+  --accent-bar: linear-gradient(90deg, #0665f9 0%, #158cfd 55%, #25ddfd 100%);
+  --sans: "Avenir Next", "Helvetica Neue", "Segoe UI", system-ui, sans-serif;
+  --mono: "SF Mono", "JetBrains Mono", Menlo, monospace;
+}
+
+@page {
+  size: A4;
+  margin: 18mm 0 20mm;
+  @bottom-left {
+    content: "Orbitware Computing Solutions LTDA · CNPJ 51.317.495/0001-18";
+    padding-left: 16mm;
+    font: 500 7.5pt var(--sans);
+    color: #8a91a3;
+  }
+  @bottom-right {
+    content: counter(page) " / " counter(pages);
+    padding-right: 16mm;
+    font: 500 7.5pt var(--mono);
+    color: #8a91a3;
+  }
+}
+
+@page :first {
+  margin-top: 0;
+}
+
+* { box-sizing: border-box; }
+
+html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+body {
+  margin: 0;
+  padding: 0 16mm;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 10pt/1.55 var(--sans);
+}
+
+.ow-cover {
+  margin: 0 -16mm 10mm;
+  padding: 14mm 16mm 11mm;
+  background: var(--black);
+  color: var(--lavender);
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 6mm;
+  align-items: center;
+  position: relative;
+}
+.ow-cover::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 1.2mm; background: var(--accent-bar); }
+
+.ow-cover img { width: 22mm; height: 22mm; }
+
+.ow-brand-name { font: 600 14pt/1.1 var(--sans); letter-spacing: .01em; color: #fff; }
+.ow-brand-tag { font: 500 7.5pt var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--lavender); opacity: .8; margin-top: 1.5mm; }
+
+.ow-doc-meta { text-align: right; }
+.ow-doc-type { font: 600 8pt var(--mono); letter-spacing: .2em; text-transform: uppercase; color: var(--cyan); }
+.ow-doc-number { font: 600 15pt/1.2 var(--sans); color: #fff; margin-top: 1mm; }
+.ow-doc-date { font: 400 8.5pt var(--mono); color: var(--lavender); opacity: .8; margin-top: 1mm; }
+
+h1 { font: 600 19pt/1.2 var(--sans); margin: 0 0 2mm; color: var(--ink); text-wrap: balance; }
+h1 em, h2 em { font-style: normal; color: var(--blue); }
+h2 {
+  font: 600 12pt/1.3 var(--sans);
+  margin: 8mm 0 3mm;
+  padding-bottom: 1.5mm;
+  border-bottom: .4mm solid var(--blue);
+  break-after: avoid;
+}
+h3 { font: 600 10.5pt var(--sans); margin: 5mm 0 2mm; break-after: avoid; }
+.ow-eyebrow { font: 600 7.5pt var(--mono); letter-spacing: .18em; text-transform: uppercase; color: var(--blue); margin-bottom: 1.5mm; }
+.ow-lead { color: var(--muted); font-size: 10.5pt; max-width: 150mm; }
+
+p { margin: 0 0 3mm; }
+strong { color: var(--ink); font-weight: 600; }
+.ow-muted { color: var(--muted); }
+
+ul.ow-list { list-style: none; padding: 0; margin: 0 0 3mm; }
+ul.ow-list li { padding: 1.6mm 0 1.6mm 5mm; position: relative; border-bottom: .2mm solid var(--hairline); }
+ul.ow-list li::before { content: ""; position: absolute; left: 0; top: 3.4mm; width: 2mm; height: 2mm; border-radius: 50%; background: var(--accent-bar); }
+
+.ow-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; margin: 6mm 0 2mm; }
+.ow-card { background: var(--mist); border: .25mm solid var(--mist-line); border-radius: 2.5mm; padding: 4mm 5mm; break-inside: avoid; }
+.ow-card .ow-eyebrow { margin-bottom: 2mm; }
+.ow-card p { margin: 0; color: var(--muted); font-size: 9pt; }
+.ow-card p strong { font-size: 10pt; }
+.ow-card.ow-card-logo { display: flex; align-items: center; justify-content: space-between; gap: 4mm; }
+.ow-card.ow-card-logo > img { height: 12mm; width: auto; flex-shrink: 0; }
+
+table.ow-table { width: 100%; border-collapse: collapse; margin: 2mm 0 4mm; font-size: 9.2pt; }
+.ow-table thead th {
+  background: var(--black);
+  color: var(--lavender);
+  font: 600 7.5pt var(--mono);
+  letter-spacing: .14em;
+  text-transform: uppercase;
+  text-align: left;
+  padding: 2.6mm 3mm;
+}
+.ow-table thead th:first-child { border-radius: 2mm 0 0 0; }
+.ow-table thead th:last-child { border-radius: 0 2mm 0 0; }
+.ow-table td { padding: 2.6mm 3mm; border-bottom: .2mm solid var(--hairline); vertical-align: top; }
+.ow-table tbody tr:nth-child(even) td { background: var(--mist); }
+.ow-table tr { break-inside: avoid; }
+.ow-table .num { text-align: right; font-family: var(--mono); white-space: nowrap; }
+.ow-table td small { display: block; color: var(--muted); font-size: 8.2pt; margin-top: .6mm; }
+
+.ow-totals { margin-left: auto; width: 80mm; break-inside: avoid; }
+.ow-totals .row { display: flex; justify-content: space-between; padding: 1.8mm 3mm; border-bottom: .2mm solid var(--hairline); font-size: 9.5pt; }
+.ow-totals .row span:last-child { font-family: var(--mono); }
+.ow-totals .grand {
+  background: var(--black);
+  color: #fff;
+  border-radius: 2mm;
+  border: 0;
+  margin-top: 2mm;
+  padding: 3.4mm 4mm;
+  font-weight: 600;
+  align-items: baseline;
+}
+.ow-totals .grand span:last-child { color: var(--cyan); font-size: 13pt; }
+
+.ow-callout {
+  border-left: 1mm solid var(--blue);
+  background: var(--mist);
+  padding: 3mm 4.5mm;
+  border-radius: 0 2mm 2mm 0;
+  margin: 4mm 0;
+  break-inside: avoid;
+}
+
+.ow-badge { display: inline-block; font: 600 7pt var(--mono); letter-spacing: .12em; text-transform: uppercase; padding: .7mm 2mm; border-radius: 1mm; }
+.ow-badge.blue { background: #e1ecfe; color: #0450c4; }
+.ow-badge.cyan { background: #daf8fe; color: #0a7f96; }
+.ow-badge.navy { background: #e3e8f6; color: var(--navy); }
+.ow-badge.silver { background: #eef0f6; color: #4a5272; }
+
+.ow-timeline { display: grid; gap: 0; margin: 2mm 0 4mm; }
+.ow-step { display: grid; grid-template-columns: 22mm 1fr; gap: 4mm; padding: 2.4mm 0; border-bottom: .2mm solid var(--hairline); break-inside: avoid; }
+.ow-step .when { font: 600 8pt var(--mono); color: var(--blue); text-transform: uppercase; letter-spacing: .1em; }
+
+.ow-signatures { display: grid; grid-template-columns: 1fr 1fr; gap: 14mm; margin-top: 18mm; break-inside: avoid; }
+.ow-signatures div { border-top: .3mm solid var(--silver); padding-top: 2mm; font-size: 8.8pt; color: var(--muted); }
+.ow-signatures strong { display: block; font-size: 9.5pt; }
+
+.ow-footnote { font-size: 8pt; color: var(--faint); margin-top: 6mm; }
+.page-break { break-before: page; }

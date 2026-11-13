@@ -26,8 +26,8 @@ flowchart LR
     A["1. Branch<br/>/git-cb"] --> B["2. Plan<br/>/create-plan"]
     B --> C["3. Implement"]
     C --> D["4. Pull Request<br/>/update-pr"]
-    D --> E["5. Review<br/>/review-pr"]
-    E --> F["6. Manual QA<br/>/manual-qa"]
+    D --> E["5. Review<br/>/deep-review"]
+    E --> F["6. Manual QA<br/>/qa-guide"]
     F --> G["7. Handoff<br/>/slack-msg"]
 ```
 
@@ -62,11 +62,11 @@ Once the implementation is complete, the pull request is opened and this skill s
 
 Reviewers and product stakeholders get full context without leaving the PR.
 
-### 5. Automated + manual review — `/review-pr`
+### 5. Automated + manual review — `/deep-review`
 
 Before requesting a human review, I run a multi-agent review on my own PR — scoped strictly to the branch's changes — covering security, API contracts, design patterns, simplicity, test coverage, dead code, and (when the diff touches LLM/agent code) agentic-systems quality. Findings come back as a **severity report** (Critical / High / Medium / Low); I choose which ones become **inline comments on the PR**, and nothing is posted without my approval. I complement it with a manual pass over my own changes. The review is also model-tiered: cheap models gather context and post the approved comments mechanically, the session's smartest model does the actual judging on the raw diff, and the security agent is pinned to a model that handles security content reliably. The intent is that human reviewers spend their time on design decisions, not on issues automation can catch.
 
-### 6. Manual QA — `/manual-qa`
+### 6. Manual QA — `/qa-guide`
 
 With the automated review done, this skill generates a step-by-step manual QA guide for the change: prerequisites, how to perform the key action, sequential test scenarios with concrete inputs and expected outputs, a quick validation table, and troubleshooting. I then walk through the product by hand to confirm the change behaves as intended — automation proves the code is sound; this step proves the feature actually works.
 

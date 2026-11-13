@@ -11,15 +11,17 @@ Input: the plan file passed in $ARGUMENTS; if absent, use the most recent file i
 ## Steps
 
 1. Read the full plan and identify independently shippable features — vertical slices that each deliver working behavior, not horizontal layers ("all schemas", "all tests").
-2. Create a subfolder named after the plan, next to the source plan file (default `plans/<plan-slug>/`; if the plan only exists in conversation, confirm the destination with the user).
+2. Create a subfolder named after the plan, next to the source plan file (default `.plans/<plan-slug>/`, which `/create-plan` already keeps git-ignored; if the plan only exists in conversation, confirm the destination with the user).
 3. Write one file per feature, named `NN-<feature-slug>.md`, containing:
    - **Goal** — what this feature delivers on its own
    - **Scope** — files touched and planned commits (keep the source plan's commit typing)
    - **Tests** — scenarios this feature must cover
+   - **Reuse**: existing code this feature must use, with paths, taken from the source plan's "Existing code reused"
+   - **Boundaries**: files and areas this feature must not touch, including the source plan's Out of scope items adjacent to it
    - **Depends on** — explicit feature numbers (e.g. `depends on: 02`), or `none`
    - **Verification** — the concrete verification commands from the source plan that exercise this feature (filter the plan's verification section to this feature's scope; if none apply, state an objective way to verify)
-   - **Done when** — objective completion criteria
-4. Write `00-overview.md` with: the ordered feature list, which features are sequential vs parallelizable (derived from the dependency declarations), and a suggested implementation order.
+   - **Done when** — objective completion criteria, citing the source plan's acceptance criteria (`AC-n`) this feature satisfies
+4. Write `00-overview.md` with: the source plan's Context and Out of scope, the ordered feature list, which features are sequential vs parallelizable (derived from the dependency declarations), a suggested implementation order, and a Progress table (one row per feature: status `pending` / `done`, evidence).
 5. Report the folder path and a one-paragraph parallelization summary.
 6. **Mirror the split into ClickUp (ask first)** — after reporting, ask the user whether to create the ClickUp structure for this split. If they accept:
    - **Parent card** — if the source plan is tied to an existing ClickUp card (e.g. the plan file is named `.plans/<clickup-id>-<slug>.md`), use that card as the parent; do NOT create a duplicate. Otherwise, draft a new parent card from the source plan following the `/create-cu-card` house format (Summary / What? / Why? / How? / Acceptance Criteria) and confirm the destination list before creating.
@@ -31,5 +33,7 @@ Input: the plan file passed in $ARGUMENTS; if absent, use the most recent file i
 
 - Each feature file must be executable in isolation by someone holding only that file plus the overview.
 - Dependencies are always explicit by feature number — never implied by ordering.
+- Features are parallelizable only when their Scope file sets are disjoint. A shared file (schema, barrel `index.ts`, `package.json`, shared config) makes them sequential, with an explicit dependency.
+- A feature moves to `done` in the overview's Progress table only after its Verification commands pass, with the command and the date recorded as evidence.
 - Split and reorganize the source plan's content — do not rewrite or invent; if the plan lacks information a feature file needs, flag the gap in that file instead of filling it in.
 - Never create ClickUp items without the user's explicit approval of the drafts and the destination — and never as a silent side effect: step 6 always starts with the question.

@@ -250,9 +250,9 @@
           <div class="gate"><span class="n">✓</span><span class="t">developer validates the plan</span></div>
           <div><span class="n">3</span><span class="t">Implement, test-first</span><span class="cmd">tdd</span></div>
           <div><span class="n">4</span><span class="t">Standardize the pull request</span><span class="cmd">/update-pr</span></div>
-          <div><span class="n">5</span><span class="t">Automated multi-agent review</span><span class="cmd">/review-pr</span></div>
+          <div><span class="n">5</span><span class="t">Automated multi-agent review</span><span class="cmd">/deep-review</span></div>
           <div class="gate"><span class="n">✓</span><span class="t">developer approves the findings</span></div>
-          <div><span class="n">6</span><span class="t">Manual QA, hands-on</span><span class="cmd">/manual-qa</span></div>
+          <div><span class="n">6</span><span class="t">Manual QA, hands-on</span><span class="cmd">/qa-guide</span></div>
           <div><span class="n">7</span><span class="t">Hand off for human review</span><span class="cmd">/slack-msg</span></div>
         </div>
         <p class="lead">Everything stays linked by construction: the branch name encodes the card, the PR links both, and the review request carries all three. Nothing depends on someone remembering a step.</p>
@@ -360,7 +360,7 @@
       <div class="eyebrow">stage 06 <span class="dim">· manual qa</span></div>
       <h2>Automation proves the code — <em>hands prove the feature</em></h2>
       <ul>
-        <li><code>/manual-qa</code> generates a step-by-step guide for the change: <strong>prerequisites, key action, sequential scenarios</strong> with concrete inputs and expected outputs</li>
+        <li><code>/qa-guide</code> generates a step-by-step guide for the change: <strong>prerequisites, key action, sequential scenarios</strong> with concrete inputs and expected outputs</li>
         <li>Plus a quick <strong>validation table</strong> and troubleshooting for the common failure points</li>
         <li>Runs after the automated review — the code is already sound; this proves the <strong>behavior</strong></li>
       </ul>
@@ -406,8 +406,8 @@
     <div class="fstep"><div class="fs-head"><span class="fs-n">02</span><span class="fs-name">Plan</span><span class="fs-cmd">/create-plan</span></div><div class="fs-desc">Structured plan — reuse, security, TDD steps, typed commits — validated by the developer and saved to <code>.plans/</code>.</div><div class="arrow-gap"></div></div>
     <div class="fstep"><div class="fs-head"><span class="fs-n">03</span><span class="fs-name">Implement</span><span class="fs-cmd">tdd</span></div><div class="fs-desc">Test-first execution; one intention per commit, one file type per commit.</div><div class="arrow-gap"></div></div>
     <div class="fstep"><div class="fs-head"><span class="fs-n">04</span><span class="fs-name">Pull request</span><span class="fs-cmd">/update-pr</span></div><div class="fs-desc">SEMVER title, Criteria of Done, env-var tables, card link — the PR explains itself.</div><div class="arrow-gap"></div></div>
-    <div class="fstep"><div class="fs-head"><span class="fs-n">05</span><span class="fs-name">Review</span><span class="fs-cmd">/review-pr</span></div><div class="fs-desc">Multi-agent review, severity report; the author approves what becomes inline comments.</div><div class="arrow-gap"></div></div>
-    <div class="fstep"><div class="fs-head"><span class="fs-n">06</span><span class="fs-name">Manual QA</span><span class="fs-cmd">/manual-qa</span></div><div class="fs-desc">Guided hands-on validation — proves the behavior, not just the code.</div><div class="arrow-gap"></div></div>
+    <div class="fstep"><div class="fs-head"><span class="fs-n">05</span><span class="fs-name">Review</span><span class="fs-cmd">/deep-review</span></div><div class="fs-desc">Multi-agent review, severity report; the author approves what becomes inline comments.</div><div class="arrow-gap"></div></div>
+    <div class="fstep"><div class="fs-head"><span class="fs-n">06</span><span class="fs-name">Manual QA</span><span class="fs-cmd">/qa-guide</span></div><div class="fs-desc">Guided hands-on validation — proves the behavior, not just the code.</div><div class="arrow-gap"></div></div>
     <div class="fstep"><div class="fs-head"><span class="fs-n">07</span><span class="fs-name">Handoff</span><span class="fs-cmd">/slack-msg</span></div><div class="fs-desc">PR marked ready, ClickUp comment guaranteed, review request posted by the developer.</div></div>
     <div class="fp-counter"><b id="current">1</b> / <span id="total">1</span></div>
   </aside>

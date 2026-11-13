@@ -1,6 +1,6 @@
 ---
-name: review-pr
-description: Rigorous multi-agent code review of the current branch — security (security-sentinel), API contracts, patterns, simplicity, test hygiene (feature-test-architect), dead code, and agentic systems (agentic-reviewer, conditional) — producing a severity report and user-approved inline GitHub comments. Use when the user asks for a full PR or branch review. Accepts optional scope arguments to limit the review to the N most recent commits and the N most changed files.
+name: deep-review
+description: Rigorous multi-agent code review of the current branch — security (security-sentinel), API contracts, patterns, simplicity, test hygiene (feature-test-architect), dead code, agentic systems (agentic-reviewer, conditional), and plan conformance against `.plans/` (conditional) — producing a severity report and user-approved inline GitHub comments. Use when the user asks for a full PR or branch review. Accepts optional scope arguments to limit the review to the N most recent commits and the N most changed files.
 argument-hint: "[num-commits] [num-files]"
 ---
 
@@ -18,8 +18,8 @@ Performs a rigorous code review focused on Node.js, Security, and API Consistenc
 
 Execution Protocol
 
-0. Branch Scope Lock (MANDATORY - Before anything else)
-CRITICAL RULE: You MUST ONLY review code from the CURRENT branch's commits that diverge from the base branch (usually `main`).
+0. Branch Scope Lock (before anything else)
+Review only the code from the current branch's commits that diverge from the base branch (usually `main`).
 
 Optional scope arguments:
 - **$0** = number of recent commits to review (e.g., `2`)
@@ -36,13 +36,13 @@ Steps:
    git diff <merge-base>..HEAD --numstat | awk '{print $1+$2 "\t" $0}' | sort -nr | cut -f2- | head -n $1
    ```
 5. When scope arguments were given, display the scoped review plan to the user before proceeding: how many commits and which files (with line counts) will be reviewed. If the branch has fewer commits or files than requested, review all of them.
-6. ALL review analysis MUST be scoped exclusively to these changed files and these commits.
-7. NEVER review, comment on, or flag issues in code that was NOT changed in this branch's commits — or that falls outside the argument-limited scope.
+6. Scope all review analysis to these changed files and these commits.
+7. Leave code outside this branch's changes, or outside the argument-limited scope, unreviewed and unflagged.
 8. If a file was only partially modified, only review the changed lines and their immediate context.
 
 This ensures the review is focused, actionable, and doesn't generate noise from pre-existing code.
 
-Model strategy: cheap models do retrieval and mechanics; the smartest model judges. Steps 1–2 run on cheap models as factual inventory, the review agents in step 3 inherit the session model (do NOT pass a `model` override — running /review-pr from a Fable/Opus session gives the reviewers that model), and the comment posting in step 6 is delegated to a Haiku subagent. The review agents must read the raw diff themselves — never judge from a summary alone.
+Model strategy: cheap models do retrieval and mechanics; the smartest model judges. Steps 1–2 run on cheap models as factual inventory, the review agents in step 3 inherit the session model (leave `model` unset, so running /deep-review from a Fable/Opus session gives the reviewers that model), and the comment posting in step 6 is delegated to a Haiku subagent. The review agents read the raw diff themselves and use the step 2 summary only for orientation.
 
 1. Context Discovery (Haiku Agent — `model: "haiku"`)
 Action: Scan the repository to identify existing "Tools" and architectural patterns.
@@ -54,18 +54,18 @@ Action: Summarize the branch's changes (scoped to commits from step 0), focusing
 
 3. Parallel Specialized Reviews (Specialized Sub-Agents)
 
-All agents MUST only analyze code within the branch scope defined in step 0.
+All agents analyze only code within the branch scope defined in step 0.
 
 Agent 1: Security — delegated to `security-sentinel`
 
-Do NOT implement security review logic inline here. The `security-sentinel` agent (defined in `~/.claude/agents/security-sentinel.md`) is the **single source of truth** for security review rules — tenant scoping/ownership (BOLA/IDOR), webhook signature/raw-body/idempotency, the mandatory secrets/PII diff pass, injection surfaces (NoSQL, prompt/LLM, command/path, SSRF, XSS), the data-flow trace (input → validation → auth → authorization → sink), lockfile-anchored dependency severity, the false-positive rulebook, and the mandatory verify pass before any CRITICAL/HIGH. Duplicating those rules here creates drift.
+Security review logic stays out of this skill. The `security-sentinel` agent (defined in `~/.claude/agents/security-sentinel.md`) is the **single source of truth** for security review rules — tenant scoping/ownership (BOLA/IDOR), webhook signature/raw-body/idempotency, the mandatory secrets/PII diff pass, injection surfaces (NoSQL, prompt/LLM, command/path, SSRF, XSS), the data-flow trace (input → validation → auth → authorization → sink), lockfile-anchored dependency severity, the false-positive rulebook, and the mandatory verify pass before any CRITICAL/HIGH. Duplicating those rules here creates drift.
 
 Invoke it via the `Agent` tool with `subagent_type: "security-sentinel"` and a prompt that:
 
-Note: this agent is pinned to `model: opus` in its frontmatter (not session-inherited) — Fable's elevated cybersecurity classifiers can refuse benign security-review content; do not override its model.
+Note: this agent is pinned to `model: opus` in its frontmatter (not session-inherited) — Fable's elevated cybersecurity classifiers can refuse benign security-review content, so keep its model as is.
 
 1. **States REVIEW mode** and locks the scope to the branch's commits and changed files identified in step 0 (include the exact commit range and file list).
-2. **Forces REPORT-ONLY mode**: *"REPORT ONLY. Do not write, modify, or delete any file, and do not post anything. Return findings as a ranked list to be merged into the /review-pr severity report."*
+2. **Forces REPORT-ONLY mode**: *"REPORT ONLY. Do not write, modify, or delete any file, and do not post anything. Return findings as a ranked list to be merged into the /deep-review severity report."*
 3. **Passes relevant context**: whether the diff touches routes/consumers/webhooks/prompts/fixtures, and any user-mandated findings to include.
 
 Take the agent's findings (it pre-applies its false-positive rulebook and verify pass), map its severities into the report buckets, and merge into the Agent 1 section of the final severity report. Findings the agent marked as disproven are not reported.
@@ -90,12 +90,12 @@ The goal is: less code to read, less code to maintain. Simpler code is easier to
 
 Agent 5: Test Hygiene — delegated to `feature-test-architect`
 
-Do NOT implement test review logic inline here. The `feature-test-architect` agent (defined in `~/.claude/agents/feature-test-architect.md`) is the **single source of truth** for test quality rules — value audit (library tautologies, object literal lookups, duplicate coverage, redundant splits, per-field fragmentation), coverage-gap detection, duplicated global setup, consolidation via `toMatchObject`/`toEqual`, and business-rule exceptions. Duplicating those rules here creates drift.
+Test review logic stays out of this skill. The `feature-test-architect` agent (defined in `~/.claude/agents/feature-test-architect.md`) is the **single source of truth** for test quality rules — value audit (library tautologies, object literal lookups, duplicate coverage, redundant splits, per-field fragmentation), coverage-gap detection, duplicated global setup, consolidation via `toMatchObject`/`toEqual`, and business-rule exceptions. Duplicating those rules here creates drift.
 
 When the PR includes test files, invoke the agent via the `Agent` tool with `subagent_type: "feature-test-architect"` and a prompt that:
 
 1. **Locks the scope** to the branch's commits and the changed test/production files identified in step 0. Include the exact file list so the agent does not roam outside scope.
-2. **Forces REPORT-ONLY mode** with an explicit instruction: *"REPORT ONLY. Do not write, modify, or delete any file. Return findings as a list (one item per issue) to be merged into the /review-pr severity report. Do not ask the user whether to apply fixes — the /review-pr skill handles user interaction afterwards."*
+2. **Forces REPORT-ONLY mode** with an explicit instruction: *"REPORT ONLY. Do not write, modify, or delete any file. Return findings as a list (one item per issue) to be merged into the /deep-review severity report. Do not ask the user whether to apply fixes — the /deep-review skill handles user interaction afterwards."*
 3. **Asks for two categories of findings**:
    - Coverage gaps: production code in the diff with no matching test.
    - Low-value / redundant tests already present in the diff.
@@ -106,11 +106,11 @@ When the PR includes test files, invoke the agent via the `Agent` tool with `sub
 
 Take the agent's findings verbatim, classify them into the severity buckets (coverage gaps and redundant-split patterns are usually HIGH or MEDIUM depending on impact), and merge into the Agent 5 section of the final severity report.
 
-**Important:** the agent must never touch files during a `/review-pr` run. The skill's contract is review-only — findings become inline GitHub comments for the PR author to act on, not direct code edits.
+The agent stays read-only during a `/deep-review` run. The skill's contract is review-only — findings become inline GitHub comments for the PR author to act on, not direct code edits.
 
 Agent 6: The Dead Code Detector (inherits session model)
 
-When the PR includes code that transforms, shapes, caps, or filters API/service response data, this agent MUST:
+When the PR includes code that transforms, shapes, caps, or filters API/service response data, this agent should:
 1. Identify every field being accessed, shaped, or removed in transformation functions (e.g., `shapeXDetail`, `mapX`, slimming functions).
 2. Locate the actual source of that data — the upstream service schema, Mongoose/TypeORM model, or API route handler — and verify each field truly exists in the real response payload.
 3. Flag as **dead code** any transformation logic that operates on a field that does NOT exist in the upstream service's actual response.
@@ -122,18 +122,26 @@ When the PR includes code that transforms, shapes, caps, or filters API/service 
 5. Cross-reference MCP tool type definitions against the real service models (check `src/domain/`, `src/db/`, route handlers, or equivalent paths depending on the service).
 6. If uncertain whether a field exists, look it up in the service's codebase before flagging — avoid false positives.
 
-The goal: never let shaping code diverge from the actual API contract. Dead transformation code creates a false sense of data processing and misleads future developers.
+The goal: keep shaping code aligned with the actual API contract. Dead transformation code creates a false sense of data processing and misleads future developers.
 
 Agent 7: Agentic Systems — delegated to `agentic-reviewer` (conditional)
 
 Only when the diff touches agentic/LLM surface — prompt files, LLM client calls (LlmService, Anthropic/OpenAI SDKs, Mastra, LangGraph), workflow/step/node definitions, tool schemas or handlers, MCP servers, fan-out/orchestration code, confidence gating, inbox/ProposedAction flows. Invoke via the `Agent` tool with `subagent_type: "agentic-reviewer"` in REVIEW mode, passing the commit range and scoped file list from step 0. The agent is read-only and report-only by construction. Merge its findings into a dedicated "Agentic systems" section of the severity report, mapped to the same severity buckets. Skip silently for non-agentic diffs.
 
+Agent 8: Plan Conformance (conditional, inherits session model)
+
+Only when the repository has a persisted plan for this branch: match the ClickUp id in the branch name against `.plans/<clickup-id>-*.md` (and its split folder, if any). Skip silently otherwise. Invoke a read-only subagent with the plan path plus the commit range and file list from step 0, and ask it to check:
+1. Each acceptance criterion (`AC-n`) is implemented and covered by the test the plan names.
+2. Changed files outside the plan's "Affected files" that the plan does not justify.
+3. Planned commits missing from the branch, or commits mixing file types against the plan's commit list.
+Each finding cites the `AC-n` or plan line it violates. Report only gaps against the plan's requirements and scope, not style or new ideas: a reviewer asked to find gaps usually reports some even on sound work. Merge into a "Plan conformance" section of the severity report (an unmet criterion is HIGH; unplanned changes are MEDIUM unless they touch a security surface).
+
 4. High-Signal Filtering
 Constraint: Ignore nitpicks. Focus on vulnerabilities, broken contracts, major pattern deviations, duplicated test setup, missing tests, redundant tests, and simplification opportunities that meaningfully reduce code volume or complexity.
 
-5. Severity-Based Summary Report (MANDATORY)
+5. Severity-Based Summary Report
 
-After all agents complete, you MUST present findings organized into exactly 4 severity categories with a count summary table:
+After all agents complete, present findings organized into exactly 4 severity categories with a count summary table:
 
 ### Review Summary
 
@@ -162,42 +170,42 @@ Then list each finding under its severity header, with each item numbered as INI
 - **L-1** [file:line] Brief description of the issue
 - **L-2** [file:line] Brief description of the issue
 
-After presenting the summary, you MUST ask:
+After presenting the summary, ask:
 "Which categories or specific items do you want me to post as comments on the PR? (e.g., 'all H', 'C-1 and H-3', 'all')"
 
 6. GitHub Interaction & Feedback
 
-### Posting Delegation (Haiku — MANDATORY)
+### Posting Delegation (Haiku)
 Once the user selects which findings to post, delegate the mechanical posting to a subagent via the `Agent` tool with `model: "haiku"`. The subagent executes, it does not write or judge:
 - The main (smart) model authors the final comment text for every selected finding **before** delegating — tone and precision are part of the review, not the posting.
 - Pass the subagent: repo/owner/PR number, HEAD SHA, and the ready-made list of comments (path, target line, body verbatim).
 - The subagent performs the Line Validation, payload construction, and `gh api` call described below (including 422 retries), and reports back which comments were posted and which were skipped as "line not in diff".
-- The subagent MUST NOT rewrite, shorten, or merge comment bodies — post them verbatim.
+- The subagent posts comment bodies verbatim, without rewriting, shortening, or merging them.
 
 ### Comment Placement
-- **ALWAYS post inline comments on the exact line where the issue is** using `gh api repos/{owner}/{repo}/pulls/{number}/reviews` with the `comments` array.
-- **NEVER create a general/summary PR comment.** Each finding must be an inline review comment attached to the specific line in the diff. A top-level comment with a summary of all issues is explicitly forbidden — it makes it harder to locate where each problem is.
+- **Post each comment inline on the exact line where the issue is** using `gh api repos/{owner}/{repo}/pulls/{number}/reviews` with the `comments` array.
+- **Attach every finding to its specific line in the diff.** Skip the top-level summary comment: it makes it harder to locate where each problem is.
 - Use `line` (line number in the file at HEAD) and `side: "RIGHT"` for each comment.
 - For new files, the file line number equals the diff line number.
 - For modified files, use the line number in the new version of the file.
-- All selected findings MUST be posted in a **single `gh api` call** using the `comments` array, so they appear as a cohesive review rather than scattered individual comments.
+- Post all selected findings in a **single `gh api` call** using the `comments` array, so they appear as a cohesive review rather than scattered individual comments.
 
-### Line Validation (MANDATORY — Before Building Payload)
-Before constructing the review payload, you MUST verify that every comment's `line` number actually exists in the PR diff. GitHub's API returns HTTP 422 ("Line could not be resolved") if you post a comment on a line that is not part of the diff.
+### Line Validation (before building the payload)
+Before constructing the review payload, verify that every comment's `line` number actually exists in the PR diff. GitHub's API returns HTTP 422 ("Line could not be resolved") if you post a comment on a line that is not part of the diff.
 
 Steps:
 1. Run `gh api repos/{owner}/{repo}/pulls/{number}/files --paginate --jq '.[] | .filename + " | " + .status + " | " + (.patch // "NO_PATCH")'` to get all files with their status and patch hunks.
 2. For **added** files (`status: "added"`): all lines in the file are in the diff — any line number is valid.
 3. For **modified** files (`status: "modified"`): only lines within the `@@` hunk ranges on the RIGHT side are valid. Parse the `@@ -X,Y +Z,W @@` headers to determine which line ranges are commentable.
-4. If a finding's line is NOT in the diff (e.g., it's in an unchanged section of a modified file), you MUST either:
+4. If a finding's line is NOT in the diff (e.g., it's in an unchanged section of a modified file), either:
    - Move the comment to the nearest line that IS in the diff within the same hunk, adjusting the comment text to reference the original line, OR
    - Drop that comment entirely and note it in the terminal output as "skipped — line not in diff".
-5. NEVER attempt to post a comment on a line outside the diff — it will cause the entire review request to fail (all comments are rejected, not just the invalid one).
+5. Post only on lines inside the diff: a single out-of-diff line makes the entire review request fail (all comments are rejected, not just the invalid one).
 
-### How to Post Comments (MANDATORY)
-**NEVER use `--field` or `-f` flags with `gh api` to pass the comments array inline.** The `--field` flag does not correctly serialize complex JSON arrays and causes HTTP 422 errors ("is not an array").
+### How to Post Comments
+**Pass the comments array through a payload file, not through `--field` or `-f` flags.** The `--field` flag does not correctly serialize complex JSON arrays and causes HTTP 422 errors ("is not an array").
 
-Instead, **ALWAYS write the full JSON payload to a temporary file and use `--input`**:
+Write the full JSON payload to a temporary file and post it with `--input`:
 
 1. Create the payload file at a collision-safe path — `mktemp /tmp/pr-review-payload.XXXXXX.json` (or the session scratchpad) — and write the full request body with the `Write` tool:
 ```json
@@ -223,26 +231,28 @@ gh api repos/{owner}/{repo}/pulls/{number}/reviews \
   --input <payload-file>
 ```
 
-This is the only reliable method. Do NOT attempt inline `--field` first — go directly to the file-based approach.
+This is the only reliable method, so start with it directly.
 
 ### Language
-- **ALL GitHub review comments MUST be written in English.** Regardless of the language used in the terminal conversation with the user, every comment posted to GitHub must be in English.
+- **Write every GitHub review comment in English**, regardless of the language used in the terminal conversation with the user.
 
 ### Tone of Voice
 - Write in **first person** as a friendly colleague doing a peer review (e.g., "I noticed that...", "I think we could...", "I wonder if...").
-- The tone must NEVER sound rude, harsh, or condescending — even for critical issues. Every comment should feel like a conversation between teammates, not a verdict.
-- Avoid phrasing that sounds accusatory or like a command. Prefer soft, exploratory language:
+- Keep the tone kind and collegial, even for critical issues. Every comment should feel like a conversation between teammates, not a verdict.
+- Prefer soft, exploratory language over phrasing that sounds accusatory or like a command:
   - Instead of "This is wrong" → "I think this might cause an issue because..."
-  - Instead of "You should add tests" → "I noticed there are no tests for this yet — would be great to cover the rollback path too"
-  - Instead of "This is redundant" → "I think this test might already be covered above — not sure it adds new coverage here"
-- Professional, gentle, and constructive. Never robotic.
-- **Do NOT prefix comments with labels like "H1:", "Finding 1:", "MEDIUM:", etc.** Just write naturally as a human reviewer would.
+  - Instead of "You should add tests" → "I noticed there are no tests for this yet, would be great to cover the rollback path too"
+  - Instead of "This is redundant" → "I think this test might already be covered above, not sure it adds new coverage here"
+- Professional, gentle, and constructive, like a person wrote it.
+- **Start each comment with the content itself**, without labels like "H1:", "Finding 1:", "MEDIUM:". Write naturally as a human reviewer would.
 - Keep comments short and direct. Use bullet points for clarity when needed.
+- **Punctuate comment bodies with commas, periods, or parentheses.** Em dashes (—) and en dashes (–) read as AI-generated, so leave them out.
+- Write like a human typing a quick review comment, not like polished prose: plain sentences, no rhetorical flourishes, no "worth noting that" / "it's worth mentioning" filler, no perfectly parallel clause structures. One idea per sentence is fine; slightly informal is fine.
 
 ### Approval Process
 1. Present the severity-based summary report (step 5) in the terminal.
-2. Mandatory Step: Ask the user which items to post on GitHub.
-3. Only after user confirmation, post ALL selected findings as **inline review comments** in a single `gh api` call using the `comments` array. Never post a summary comment — only inline comments per finding.
+2. Ask the user which items to post on GitHub.
+3. Only after user confirmation, post ALL selected findings as **inline review comments** in a single `gh api` call using the `comments` array.
 
 7. Finalization
-Closing: You MUST end the response with: "Review complete. Which severity categories or specific items should I post as GitHub comments?"
+Closing: End the response with: "Review complete. Which severity categories or specific items should I post as GitHub comments?"
