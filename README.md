@@ -12,6 +12,8 @@ The goal is to make every delivery follow the same quality gates: a validated pl
 | `skills/` | Slash commands that orchestrate each stage of the workflow. |
 | `shared/` | Conventions referenced by multiple skills, such as the commit structure rules. |
 | `docs/` | Supporting material — the workflow slide deck. |
+| `hooks/` | Hook definitions to merge into `~/.claude/settings.json`, such as the pnpm-only guard that blocks `npm` commands. |
+| `CLAUDE.md` | Global instructions, mirrored from `~/.claude/CLAUDE.md`. |
 
 ## Tooling
 

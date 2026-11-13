@@ -1,0 +1,16 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash -c 'INPUT=$(cat); if echo \"$INPUT\" | sed \"s/pnpm//g\" | grep -qw npm; then echo \"BLOQUEADO: Use pnpm ao invés de npm! O npm não é permitido neste ambiente.\" >&2; exit 2; fi'",
+            "statusMessage": "Verificando uso de npm..."
+          }
+        ]
+      }
+    ]
+  }
+}
